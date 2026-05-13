@@ -1,0 +1,64 @@
+#!/bin/bash
+set -euo pipefail
+
+BIN="ESM_Firmware_KPCCC_LN32_2.92_A00.BIN"
+OFFSET=$((0x445e00))
+CRAMFS_SIZE=52207616
+WORK="work"
+OUT="output"
+
+mkdir -p "$WORK" "$OUT"
+
+cmd_extract() {
+    echo "=== Extracting ==="
+    GZIP_OFF=$(xxd -c 1 "$BIN" | grep -m1 '1f8b' | head -1 | awk -F: '{print "0x"$1}')
+    echo "gzip payload at $GZIP_OFF"
+    tail -c +$((GZIP_OFF + 1)) "$BIN" | gzip -d > "$WORK/payload.tar"
+    tar xf "$WORK/payload.tar" -C "$WORK"
+    dd if="$WORK/payload/firmimg.d6" of="$WORK/rootfs.cramfs" bs=1 skip=$OFFSET count=$CRAMFS_SIZE 2>/dev/null
+    mkdir -p "$WORK/rootfs"
+    sudo mount -o loop,ro "$WORK/rootfs.cramfs" "$WORK/rootfs"
+    cp -a "$WORK/rootfs" "$WORK/rootfs_rw"
+    sudo umount "$WORK/rootfs"
+}
+
+cmd_patch() {
+    echo "=== Patching ==="
+    TPL="$WORK/rootfs_rw/usr/local/etc/appweb/appweb.conf.template"
+    sed -i 's/^Listen ${AIM_HTTP_PORT}$/Listen [::]:${AIM_HTTP_PORT}/' "$TPL"
+    sed -i 's/^Listen ${AIM_HTTPS_PORT}$/Listen [::]:${AIM_HTTPS_PORT}/' "$TPL"
+    grep '^Listen' "$TPL"
+}
+
+cmd_repack() {
+    echo "=== Repacking ==="
+    if command -v mkfs.cramfs &>/dev/null; then
+        sudo mkfs.cramfs -v "$WORK/rootfs_rw" "$WORK/rootfs_patched.cramfs" 2>&1 | tail -3
+    else
+        sudo mkcramfs -v -E "$WORK/rootfs_rw" "$WORK/rootfs_patched.cramfs" 2>&1 | tail -3
+    fi
+    dd if="$WORK/payload/firmimg.d6" of="$OUT/firmimg_patched.d6" bs=1 count=$OFFSET 2>/dev/null
+    dd if="$WORK/rootfs_patched.cramfs" of="$OUT/firmimg_patched.d6" bs=1 seek=$OFFSET 2>/dev/null
+    truncate -s $(wc -c < "$WORK/payload/firmimg.d6") "$OUT/firmimg_patched.d6"
+}
+
+cmd_verify() {
+    echo "=== Verify ==="
+    local img="$OUT/firmimg_patched.d6"
+    local magic=$(xxd -p -s0x200 -l4 "$img")
+    echo "uImage magic: $magic (expect 27051956)"
+    [ "$magic" = "27051956" ] || { echo "FAIL"; exit 1; }
+    local cm=$(xxd -p -s${OFFSET} -l4 "$img")
+    echo "CramFS magic: $cm (expect 28cd3d45)"
+    [ "$cm" = "28cd3d45" ] || { echo "FAIL"; exit 1; }
+    echo "PASS"
+}
+
+case "${1:-}" in
+    extract) cmd_extract ;;
+    patch)   cmd_patch ;;
+    repack)  cmd_repack ;;
+    verify)  cmd_verify ;;
+    all)     cmd_extract; cmd_patch; cmd_repack; cmd_verify ;;
+    *)       echo "Usage: $0 {extract|patch|repack|verify|all}"; exit 1 ;;
+esac
