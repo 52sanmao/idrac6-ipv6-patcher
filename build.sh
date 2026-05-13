@@ -11,7 +11,7 @@ mkdir -p "$WORK" "$OUT"
 
 cmd_extract() {
     echo "=== Extracting ==="
-    GZIP_OFF=$(xxd -c 1 "$BIN" | grep -m1 '1f8b' | head -1 | awk -F: '{print "0x"$1}')
+    GZIP_OFF=$(python3 -c "f=open('$BIN','rb'); d=f.read(); print(d.find(b'\x1f\x8b')); f.close()")
     echo "gzip payload at $GZIP_OFF"
     tail -c +$((GZIP_OFF + 1)) "$BIN" | gzip -d > "$WORK/payload.tar"
     tar xf "$WORK/payload.tar" -C "$WORK"
@@ -45,10 +45,10 @@ cmd_repack() {
 cmd_verify() {
     echo "=== Verify ==="
     local img="$OUT/firmimg_patched.d6"
-    local magic=$(xxd -p -s0x200 -l4 "$img")
+    local magic=$(python3 -c "f=open('$img','rb'); f.seek(0x200); print(f.read(4).hex()); f.close()")
     echo "uImage magic: $magic (expect 27051956)"
     [ "$magic" = "27051956" ] || { echo "FAIL"; exit 1; }
-    local cm=$(xxd -p -s${OFFSET} -l4 "$img")
+    local cm=$(python3 -c "f=open('$img','rb'); f.seek($OFFSET); print(f.read(4).hex()); f.close()")
     echo "CramFS magic: $cm (expect 28cd3d45)"
     [ "$cm" = "28cd3d45" ] || { echo "FAIL"; exit 1; }
     echo "PASS"
