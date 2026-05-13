@@ -14,11 +14,16 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq cramfstool 2>/dev/null ||
-          sudo apt-get install -y -qq cramfs-tools 2>/dev/null ||
-          (sudo apt-get install -y -qq gcc make zlib1g-dev &&
-           git clone --depth 1 https://github.com/npitre/cramfs-tools.git /tmp/cramfs-tools &&
-           cd /tmp/cramfs-tools && make && sudo cp mkcramfs fsck.cramfs /usr/local/bin/)
+          sudo apt-get install -y -qq xxd 2>/dev/null || true
+          if sudo apt-get install -y -qq cramfstool 2>/dev/null; then
+            true
+          elif sudo apt-get install -y -qq cramfs-tools 2>/dev/null; then
+            true
+          else
+            sudo apt-get install -y -qq gcc make zlib1g-dev
+            git clone --depth 1 https://github.com/npitre/cramfs-tools.git /tmp/cramfs-tools
+            cd /tmp/cramfs-tools && make && sudo cp mkcramfs /usr/local/bin/
+          fi
         shell: bash
 
       - name: Download original firmware from Dell
