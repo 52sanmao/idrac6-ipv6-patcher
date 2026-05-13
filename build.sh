@@ -17,7 +17,7 @@ cmd_extract() {
     tar xf "$WORK/payload.tar" -C "$WORK"
     dd if="$WORK/payload/firmimg.d6" of="$WORK/rootfs.cramfs" bs=1 skip=$OFFSET count=$CRAMFS_SIZE 2>/dev/null
     rm -rf "$WORK/rootfs_rw"
-    cramfsck -x "$WORK/rootfs_rw" "$WORK/rootfs.cramfs" 2>&1 | tail -3
+    cramfsck -x "$WORK/rootfs_rw" "$WORK/rootfs.cramfs" 2>&1 | tail -3 || true
 }
 
 cmd_patch() {
