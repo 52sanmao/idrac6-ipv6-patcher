@@ -1,0 +1,49 @@
+name: Build Patched iDRAC6 Firmware
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq cramfstool 2>/dev/null ||
+          sudo apt-get install -y -qq cramfs-tools 2>/dev/null ||
+          (sudo apt-get install -y -qq gcc make zlib1g-dev &&
+           git clone --depth 1 https://github.com/npitre/cramfs-tools.git /tmp/cramfs-tools &&
+           cd /tmp/cramfs-tools && make && sudo cp mkcramfs fsck.cramfs /usr/local/bin/)
+        shell: bash
+
+      - name: Download original firmware from Dell
+        run: |
+          curl -L -o ESM_Firmware_KPCCC_LN32_2.92_A00.BIN \
+            -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" \
+            "https://dl.dell.com/FOLDER05419072M/1/ESM_Firmware_KPCCC_LN32_2.92_A00.BIN"
+          sha256sum ESM_Firmware_KPCCC_LN32_2.92_A00.BIN | grep -q c2fbde2908677ff77c8095e263320941d9f6b6d9fc0df26b5f75ae9ed293dcb6
+          echo "SHA256 verified"
+
+      - name: Extract firmware
+        run: bash build.sh extract
+
+      - name: Apply patch
+        run: bash build.sh patch
+
+      - name: Repack firmware
+        run: bash build.sh repack
+
+      - name: Verify result
+        run: bash build.sh verify
+
+      - name: Upload patched firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: iDRAC6-v2.92-ipv6-patched
+          path: output/
+          compression-level: 0

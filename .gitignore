@@ -1,0 +1,6 @@
+work/
+output/
+*.BIN
+*.tar
+*.cramfs
+*.d6
