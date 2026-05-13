@@ -46,9 +46,10 @@ cmd_verify() {
     local magic=$(python3 -c "f=open('$img','rb'); f.seek(0x200); print(f.read(4).hex()); f.close()")
     echo "uImage magic: $magic (expect 27051956)"
     [ "$magic" = "27051956" ] || { echo "FAIL"; exit 1; }
-    local cm=$(python3 -c "f=open('$img','rb'); f.seek($OFFSET); print(f.read(4).hex()); f.close()")
-    echo "CramFS magic: $cm (expect 28cd3d45)"
-    [ "$cm" = "28cd3d45" ] || { echo "FAIL"; exit 1; }
+    local cm=$(python3 -c "f=open('$img','rb'); f.seek($OFFSET); b=f.read(4); print(f'{b[0]:02x} {b[1]:02x} {b[2]:02x} {b[3]:02x}'); f.close()")
+    echo "CramFS bytes: $cm (expect 45 3d cd 28)"
+    local cm_hex=$(echo "$cm" | tr -d ' ')
+    [ "$cm_hex" = "453dcd28" ] || { echo "FAIL"; exit 1; }
     echo "PASS"
 }
 
