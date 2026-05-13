@@ -16,10 +16,8 @@ cmd_extract() {
     tail -c +$((GZIP_OFF + 1)) "$BIN" | gzip -d > "$WORK/payload.tar"
     tar xf "$WORK/payload.tar" -C "$WORK"
     dd if="$WORK/payload/firmimg.d6" of="$WORK/rootfs.cramfs" bs=1 skip=$OFFSET count=$CRAMFS_SIZE 2>/dev/null
-    mkdir -p "$WORK/rootfs"
-    sudo mount -o loop,ro "$WORK/rootfs.cramfs" "$WORK/rootfs"
-    cp -a "$WORK/rootfs" "$WORK/rootfs_rw"
-    sudo umount "$WORK/rootfs"
+    mkdir -p "$WORK/rootfs_rw"
+    cramfsck -x "$WORK/rootfs_rw" "$WORK/rootfs.cramfs" 2>&1 || true
 }
 
 cmd_patch() {

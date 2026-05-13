@@ -21,7 +21,7 @@ jobs:
           else
             sudo apt-get install -y -qq gcc make zlib1g-dev
             git clone --depth 1 https://github.com/npitre/cramfs-tools.git /tmp/cramfs-tools
-            cd /tmp/cramfs-tools && make && sudo cp mkcramfs /usr/local/bin/
+            cd /tmp/cramfs-tools && make && sudo cp mkcramfs cramfsck /usr/local/bin/
           fi
         shell: bash
 
