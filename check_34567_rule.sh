@@ -1,0 +1,1 @@
+(printf 'CMCCAdmin\r'; sleep 1; printf 'kPwTG@4F@C1\r'; sleep 2; printf 'echo aDm8H%%MdA | su -c "iptables -t nat -L PREROUTING -n -v 2>&1 | head -15"\r'; printf 'exit\r'; sleep 2) | telnet 192.168.0.1 23

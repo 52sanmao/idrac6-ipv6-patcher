@@ -1,0 +1,1 @@
+(printf 'CMCCAdmin\r'; sleep 1; printf 'kPwTG@4F@C1\r'; sleep 2; printf 'echo aDm8H%%MdA | su -c "ip6tables -t nat -A PREROUTING -p tcp --dport 34567 -j REDIRECT --to-port 8080"\r'; printf 'echo aDm8H%%MdA | su -c "ip6tables -I INPUT 1 -p tcp --dport 34567 -j ACCEPT"\r'; printf 'echo DONE\r'; printf 'exit\r'; sleep 2) | telnet 192.168.0.1 23
