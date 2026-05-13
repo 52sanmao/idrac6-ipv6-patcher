@@ -22,10 +22,19 @@ cmd_extract() {
 
 cmd_patch() {
     echo "=== Patching ==="
-    TPL="$WORK/rootfs_rw/usr/local/etc/appweb/appweb.conf.template"
-    sed -i 's/^Listen ${AIM_HTTP_PORT}$/Listen [::]:${AIM_HTTP_PORT}/' "$TPL"
-    sed -i 's/^Listen ${AIM_HTTPS_PORT}$/Listen [::]:${AIM_HTTPS_PORT}/' "$TPL"
-    grep '^Listen' "$TPL"
+    export WORK
+    python3 -c "
+import os
+p = os.path.join(os.environ['WORK'], 'rootfs_rw/usr/local/etc/appweb/appweb.conf.template')
+d = open(p, errors='ignore').read()
+old = d
+d = d.replace('Listen \x24{AIM_HTTP_PORT}', 'Listen [::]:\x24{AIM_HTTP_PORT}')
+d = d.replace('Listen \x24{AIM_HTTPS_PORT}', 'Listen [::]:\x24{AIM_HTTPS_PORT}')
+open(p, 'w').write(d)
+print('Changed:', 'yes' if d != old else 'NO - lines unchanged')
+print('Count Listen [::]:', d.count('Listen [::]'))
+"
+    grep '^Listen' "$WORK/rootfs_rw/usr/local/etc/appweb/appweb.conf.template" 2>/dev/null || echo "File not found"
 }
 
 cmd_repack() {
